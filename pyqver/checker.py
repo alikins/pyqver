@@ -2,7 +2,12 @@ import logging
 import optparse
 from distutils import cmd
 
-from pyqver import pyqver2
+# A hacky way to determine which version of python we are running on
+# Pyqver2 relies on the removed module "compiler" and will error out without it
+try:
+    from pyqver import pyqver2 as pyqver_runner
+except:
+    from pyqver import pyqver3 as pyqver_runner
 from pyqver import pyqverbase
 
 log = logging.getLogger(__name__)
@@ -39,7 +44,7 @@ def register_opt(parser, *args, **kwargs):
 
 class PyqverChecker(object):
     name = "pyqverChecker"
-    version = "1.3"
+    version = "1.4"
     min_version = "2.5"
 
     def __init__(self, tree, filename, *args, **kwargs):
@@ -91,8 +96,10 @@ class PyqverChecker(object):
         # FIXME: get these monkeypatching globals off this module flaking plane
         pyqverbase._printer = self
         pyqverbase._min_version = self.min_version
-        pyqver2._allow_caught_import_errors = True
+        # This only has an effect if pyqver_runner is pyqver2, but we'd
+        # like this to work for whichever major version of python this
+        pyqver_runner._allow_caught_import_errors = True
 
-        pyqverbase.evaluate_file(self.filename, pyqver2.get_versions)
+        pyqverbase.evaluate_file(self.filename, pyqver_runner.get_versions)
         for line_number, column_number, message, checker_name in self.results:
             yield (line_number, column_number, message, checker_name)
